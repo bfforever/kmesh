@@ -155,6 +155,8 @@ func (s *Server) bpfAdsMaps(w http.ResponseWriter, r *http.Request) {
 type LoggerInfo struct {
 	Name  string `json:"name,omitempty"`
 	Level string `json:"level,omitempty"`
+	BpfLogLevel string `json:"bpfloglevel,omitempty"`
+	BpfLogDumpSpace string `json:"bpflogdumpspace,omitempty"`
 }
 
 func (s *Server) loggersHandler(w http.ResponseWriter, r *http.Request) {
@@ -176,9 +178,17 @@ func (s *Server) getLoggerLevel(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "\t%v\n", err)
 		return
 	}
+	bpfloglevel, dumpSpace, err := logger.GetBpfLogLevel(s.bpfWorkloadObj.SockConn.BpfLogLevel)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "\t%s\n", err.Error())
+		return
+	}
 	loggerInfo := LoggerInfo{
 		Name:  loggerName,
 		Level: loggerLevel.String(),
+		BpfLogLevel: bpfloglevel,
+		BpfLogDumpSpace: dumpSpace,
 	}
 	data, err := json.MarshalIndent(&loggerInfo, "", "    ")
 	if err != nil {
@@ -226,12 +236,18 @@ func (s *Server) setLoggerLevel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err = logger.SetBpfLogLevelAndDumpSpace(loggerInfo.BpfLogLevel, loggerInfo.BpfLogDumpSpace, s.bpfWorkloadObj.SockConn.BpfLogLevel); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "\t%s\n", err.Error())
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("OK"))
 }
 
 func (s *Server) configDumpAds(w http.ResponseWriter, r *http.Request) {
-	client := s.xdsClient
+	client := s.xdsClient 
 	if client == nil || client.AdsController == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "\t%s\n", "invalid ClientMode")

@@ -33,6 +33,8 @@ const (
 	BPF_LOG_WARN  = 1
 	BPF_LOG_INFO  = 2
 	BPF_LOG_DEBUG = 3
+	BPF_DUMP_SPACE_USERSPACE = 1 << 2
+	BPF_DUMP_SPACE_TRACE_PIPE = 1 << 3
 
 	// Ip(0.0.0.2 | ::2) used for control command, e.g. KmeshControl | ByPass
 	ControlCommandIp4 = "0.0.0.2"

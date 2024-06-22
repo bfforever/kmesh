@@ -23,6 +23,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/ringbuf"
@@ -94,12 +95,73 @@ func GetLoggerLevel(loggerName string) (logrus.Level, error) {
 	return logger.Level, nil
 }
 
+/* 
+logDumpSpace: 
+userspace--> 0100--> 4
+tracepipe--> 1000--> 8
+ */
+func SetBpfLogLevelAndDumpSpace(bpfLogLevel string, dumpSpace string, bpfMap *ebpf.Map) error {
+	mapValue := uint32(0)
+	l, err := strconv.Atoi(bpfLogLevel)
+	if bpfLogLevel != "" && err != nil {
+		return err
+	}
+	if l <= constants.BPF_LOG_DEBUG || l >= constants.BPF_LOG_ERR {
+		mapValue = uint32(l)
+	}
+	dp, err := strconv.Atoi(dumpSpace)
+	if dumpSpace != "" && err != nil {
+		return err
+	}
+	if dp == constants.BPF_DUMP_SPACE_USERSPACE || dp == constants.BPF_DUMP_SPACE_TRACE_PIPE {
+		mapValue ^= uint32(dp)
+	}
+	zero := uint32(0)
+	return bpfMap.Update(&zero, &mapValue, ebpf.UpdateAny)
+}
+
 func GetLoggerNames() []string {
 	names := make([]string, 0, len(loggerMap))
 	for loggerName := range loggerMap {
 		names = append(names, loggerName)
 	}
 	return names
+}
+
+func GetBpfLogLevel(bpfMap *ebpf.Map) (string, string, error) {
+	zero := uint32(0)
+	var mapValue uint32
+	err := bpfMap.Lookup(&zero, &mapValue)
+	if err != nil {
+		return "", "", err
+	}
+	l := mapValue & 0b0011
+	dp := mapValue >> 2 & 0b0011
+
+	var bpfLogLevel string
+	var bpfDumpSpace string
+	switch (l) {
+	case constants.BPF_LOG_ERR:
+		bpfLogLevel = "BPF_LOG_ERR"
+	case constants.BPF_LOG_WARN:
+		bpfLogLevel = "BPF_LOG_WARN"
+	case constants.BPF_LOG_INFO:
+		bpfLogLevel = "BPF_LOG_INFO"
+	case constants.BPF_LOG_DEBUG:
+		bpfLogLevel = "BPF_LOG_DEBUG"
+	default:
+		bpfLogLevel = "invalid bpf log level"
+	}
+	switch (dp) {
+	case constants.BPF_DUMP_SPACE_USERSPACE:
+		bpfDumpSpace = "BPF_DUMP_SPACE_USERSPACE"
+	case constants.BPF_DUMP_SPACE_TRACE_PIPE:
+		bpfDumpSpace = "BPF_DUMP_SPACE_TRACE_PIPE"
+	default:
+		bpfDumpSpace = "invalid bpf dump value"
+	}
+
+	return bpfLogLevel, bpfDumpSpace, nil
 }
 
 // InitializeDefaultLogger return a initialized logger

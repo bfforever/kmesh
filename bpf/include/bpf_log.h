@@ -17,6 +17,8 @@
 #define BPF_LOGTYPE_XDP     BPF_DEBUG_OFF
 #define BPF_LOGTYPE_SENDMSG BPF_DEBUG_OFF
 #define MAX_MSG_LEN         255
+#define BPF_DUMP_SPACE_USERSPACE 4
+#define BPF_DUMP_SPACE_TRACE_PIPE 8
 
 enum bpf_loglevel {
     BPF_LOG_ERR = 0,
@@ -106,11 +108,13 @@ static inline int map_lookup_log_level()
 
 #define BPF_LOG(l, t, f, ...)                                                                                          \
     do {                                                                                                               \
-        int level = map_lookup_log_level();                                                                            \
+        int map_v = map_lookup_log_level();                                                                            \
+        int level = map_v & 0b0011;                                     \
         int loglevel = BPF_MIN((int)level, ((int)BPF_LOG_DEBUG + (int)(BPF_LOGTYPE_##t)));                             \
         if ((int)(BPF_LOG_##l) <= loglevel) {                                                                          \
             static const char fmt[] = "[" #t "] " #l ": " f "";                                                        \
-            if (!KERNEL_VERSION_HIGHER_5_13_0)                                                                         \
+            int dump_space = map_v & 0b1100;                                                                           \
+            if (!KERNEL_VERSION_HIGHER_5_13_0 || dump_space == BPF_DUMP_SPACE_TRACE_PIPE)                              \
                 bpf_trace_printk(fmt, sizeof(fmt), ##__VA_ARGS__);                                                     \
             else                                                                                                       \
                 BPF_LOG_U(fmt, ##__VA_ARGS__);                                                                         \

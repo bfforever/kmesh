@@ -153,9 +153,9 @@ func (s *Server) bpfAdsMaps(w http.ResponseWriter, r *http.Request) {
 }
 
 type LoggerInfo struct {
-	Name  string `json:"name,omitempty"`
-	Level string `json:"level,omitempty"`
-	BpfLogLevel string `json:"bpfloglevel,omitempty"`
+	Name            string `json:"name,omitempty"`
+	Level           string `json:"level,omitempty"`
+	BpfLogLevel     string `json:"bpfloglevel,omitempty"`
 	BpfLogDumpSpace string `json:"bpflogdumpspace,omitempty"`
 }
 
@@ -185,9 +185,9 @@ func (s *Server) getLoggerLevel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	loggerInfo := LoggerInfo{
-		Name:  loggerName,
-		Level: loggerLevel.String(),
-		BpfLogLevel: bpfloglevel,
+		Name:            loggerName,
+		Level:           loggerLevel.String(),
+		BpfLogLevel:     bpfloglevel,
 		BpfLogDumpSpace: dumpSpace,
 	}
 	data, err := json.MarshalIndent(&loggerInfo, "", "    ")
@@ -247,7 +247,7 @@ func (s *Server) setLoggerLevel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) configDumpAds(w http.ResponseWriter, r *http.Request) {
-	client := s.xdsClient 
+	client := s.xdsClient
 	if client == nil || client.AdsController == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "\t%s\n", "invalid ClientMode")

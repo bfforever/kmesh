@@ -95,11 +95,11 @@ func GetLoggerLevel(loggerName string) (logrus.Level, error) {
 	return logger.Level, nil
 }
 
-/* 
-logDumpSpace: 
+/*
+logDumpSpace:
 userspace--> 0100--> 4
 tracepipe--> 1000--> 8
- */
+*/
 func SetBpfLogLevelAndDumpSpace(bpfLogLevel string, dumpSpace string, bpfMap *ebpf.Map) error {
 	mapValue := uint32(0)
 	l, err := strconv.Atoi(bpfLogLevel)
@@ -136,11 +136,11 @@ func GetBpfLogLevel(bpfMap *ebpf.Map) (string, string, error) {
 		return "", "", err
 	}
 	l := mapValue & 0b0011
-	dp := mapValue >> 2 & 0b0011
+	dp := mapValue & 0b1100
 
 	var bpfLogLevel string
 	var bpfDumpSpace string
-	switch (l) {
+	switch l {
 	case constants.BPF_LOG_ERR:
 		bpfLogLevel = "BPF_LOG_ERR"
 	case constants.BPF_LOG_WARN:
@@ -152,13 +152,13 @@ func GetBpfLogLevel(bpfMap *ebpf.Map) (string, string, error) {
 	default:
 		bpfLogLevel = "invalid bpf log level"
 	}
-	switch (dp) {
+	switch dp {
 	case constants.BPF_DUMP_SPACE_USERSPACE:
 		bpfDumpSpace = "BPF_DUMP_SPACE_USERSPACE"
 	case constants.BPF_DUMP_SPACE_TRACE_PIPE:
 		bpfDumpSpace = "BPF_DUMP_SPACE_TRACE_PIPE"
 	default:
-		bpfDumpSpace = "invalid bpf dump value"
+		bpfDumpSpace = "invalid bpf dump space value,determined by bpfloglevel"
 	}
 
 	return bpfLogLevel, bpfDumpSpace, nil
